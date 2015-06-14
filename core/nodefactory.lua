@@ -213,7 +213,7 @@ local _vglue = _box {
     -- self.shrink = 0
   end,
   outputYourself = function (self,typesetter, line)
-    typesetter.frame:moveY(line.depth + line.height)
+    typesetter.frame:moveY(line.depth + line.height.length)
   end
 }
 
@@ -246,17 +246,13 @@ local _vbox = _box {
       self.depth = (d > self.depth) and d or self.depth
       self.height = (h > self.height) and h or self.height
     end
-    self.depth = SILE.length.new({length = self.depth })
-    self.height = SILE.length.new({length = self.height })
     return self
   end,
   toText = function (self) 
     return "VB[" .. SU.concat(SU.map(function (n) return n:toText().."" end, self.nodes), "") .. "]" 
   end,
   outputYourself = function(self, typesetter, line)
-    if (typesetter.frame.state.cursorY == typesetter.frame:top()) then
-      typesetter.frame:moveY(self.height)
-    end
+    typesetter.frame:moveY(self.height)  
     local initial = true
     for i,node in pairs(self.nodes) do
       if initial and (node:isGlue() or node:isPenalty()) then
@@ -266,7 +262,6 @@ local _vbox = _box {
         node:outputYourself(typesetter, self)
       end
     end
-    typesetter.frame:moveY(self.height)
     typesetter.frame:moveY(self.depth)
     typesetter.frame:newLine()
   end  
