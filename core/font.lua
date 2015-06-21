@@ -1,10 +1,10 @@
 
     SILE.registerCommand("font", function(options, content)
       if (type(content)=="function" or content[1]) then
-        SILE.settings.pushState()  
+        SILE.settings.pushState() 
       end
       if (options.family)  then SILE.settings.set("font.family", options.family) end
-      if (options.size)  then 
+      if (options.size)  then
         local size = SILE.parserBits.dimensioned_string:match(options.size)
         if not size then SU.error("Couldn't parse font size "..options.size) end
         SILE.settings.set("font.size", size)
@@ -14,11 +14,11 @@
       if (options.variant)  then SILE.settings.set("font.variant", options.variant) end
       if (options.features)  then SILE.settings.set("font.features", options.features) end
 
-      if (options.language)  then  
-        SILE.settings.set("document.language", options.language) 
+      if (options.language)  then 
+        SILE.settings.set("document.language", options.language)
         SILE.languageSupport.loadLanguage(options.language)
       end
-      if (options.script)  then SILE.settings.set("font.script", options.script) 
+      if (options.script)  then SILE.settings.set("font.script", options.script)
       elseif SILE.settings.get("document.language") then
         local lang = SILE.languageSupport.languages[SILE.settings.get("document.language")]
         if lang and lang.defaultScript then
@@ -26,7 +26,7 @@
         end
       end
 
-      if (type(content)=="function" or content[1]) then 
+      if (type(content)=="function" or content[1]) then
         SILE.process(content)
         SILE.settings.popState()
       end
@@ -38,13 +38,14 @@ SILE.settings.declare({name = "font.weight", type = "integer", default = 200})
 SILE.settings.declare({name = "font.variant", type = "string", default = "normal"})
 SILE.settings.declare({name = "font.script", type = "string", default = ""})
 SILE.settings.declare({name = "font.style", type = "string", default = "normal"})
+SILE.settings.declare({name = "font.direction", type = "string", default = ""})
 SILE.settings.declare({name = "font.features", type = "string", default = ""})
 SILE.settings.declare({name = "document.language", type = "string", default = "en"})
 
 SILE.fontCache = {}
 
 local _key = function(options)
-  return table.concat({options.font;options.size;options.weight;options.style;options.variant;options.features},";")
+  return table.concat({options.font;options.size;options.weight;options.style;options.variant;options.features;options.direction},";")
 end
 
 
@@ -56,7 +57,12 @@ SILE.font = {loadDefaults = function(options)
   if not options.variant then options.variant = SILE.settings.get("font.variant") end
   if not options.language then options.language = SILE.settings.get("document.language") end
   if not options.script then options.script = SILE.settings.get("font.script") end
-  if not options.direction then options.direction = SILE.typesetter.frame and SILE.typesetter.frame.direction or "LTR" end
+  if not options.direction then 
+    options.direction = SILE.settings.get("font.direction") 
+    if not options.direction or options.direction == "" then
+      options.direction = SILE.typesetter.frame and SILE.typesetter.frame.direction or "LTR"
+    end
+  end
   if not options.features then options.features = SILE.settings.get("font.features") end
   return options
 end,

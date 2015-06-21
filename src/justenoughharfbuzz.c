@@ -144,12 +144,21 @@ int face_from_options(lua_State* L) {
   FcPatternGetInteger(matched, FC_SLANT, 0, &slant);
   FcPatternGetInteger(matched, FC_WEIGHT, 0, &weight);
 
-  FcPatternDestroy (matched);
-  FcPatternDestroy (p);
+  /* Find out which family we did actually pick up */
+  if (FcPatternGetString (matched, FC_FAMILY, 0, &family) != FcResultMatch)
+    return 0;
   lua_newtable(L);
   lua_pushstring(L, "filename");
   lua_pushstring(L, (char*)font_path);
   lua_settable(L, -3);
+
+  lua_pushstring(L, "family");
+  lua_pushstring(L, (char*)(family));
+  lua_settable(L, -3);
+
+  FcPatternDestroy (matched);
+  FcPatternDestroy (p);
+
   face = (FT_Face)malloc(sizeof(FT_Face));
   if (FT_New_Face(ft_library, (char*)font_path, index, &face))
     return 0;
@@ -320,16 +329,18 @@ int shape (lua_State *L) {
       lua_pushstring(L, namebuf);
       lua_settable(L, -3);
 
-      if (glyph_pos[j].x_offset) {
-        lua_pushstring(L, "x_offset");
-        lua_pushnumber(L, glyph_pos[j].x_offset / 64.0);
-        lua_settable(L, -3);
-      }
+      if (direction != HB_DIRECTION_TTB) { /* XXX */
+        if (glyph_pos[j].x_offset) {
+          lua_pushstring(L, "x_offset");
+          lua_pushnumber(L, glyph_pos[j].x_offset / 64.0);
+          lua_settable(L, -3);
+        }
 
-      if (glyph_pos[j].y_offset) {
-        lua_pushstring(L, "y_offset");
-        lua_pushnumber(L, glyph_pos[j].y_offset / 64.0);
-        lua_settable(L, -3);
+        if (glyph_pos[j].y_offset) {
+          lua_pushstring(L, "y_offset");
+          lua_pushnumber(L, glyph_pos[j].y_offset / 64.0);
+          lua_settable(L, -3);
+        }
       }
 
       lua_pushstring(L, "codepoint");

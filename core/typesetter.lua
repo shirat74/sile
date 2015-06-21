@@ -10,14 +10,14 @@ if std.string.monkey_patch then -- stdlib >= 40
 end
 
 SILE.settings.declare({
-  name = "typesetter.widowpenalty", 
+  name = "typesetter.widowpenalty",
   type = "integer",
   default = 3000,
   help = "Penalty to be applied to widow lines (at the start of a paragraph)"
 })
 
 SILE.settings.declare({
-  name = "typesetter.parseppattern", 
+  name = "typesetter.parseppattern",
   type = "string or integer",
   default = "\n\n+",
   help = "Lua pattern used to separate paragraphs"
@@ -55,9 +55,8 @@ SILE.defaultTypesetter = std.object {
     self.state = {
       nodes = {},
       outputQueue = {},
-      lastBadness = awful_bad,      
+      lastBadness = awful_bad,     
     };
-    self:initline()
   end,
   initFrame = function(self, frame)
     self.frame = frame
@@ -96,13 +95,13 @@ SILE.defaultTypesetter = std.object {
   pushExplicitVglue = function (self, spec)
     spec.skiptype = "explicit"
     return self:pushVglue(spec)
-  end,  
+  end, 
   pushVpenalty = function (self, spec) return table.insert(self.state.outputQueue, SILE.nodefactory.newPenalty(spec)); end,
 
   -- Actual typesetting functions
   typeset = function (self, text)
     for t in SU.gtoke(text,SILE.settings.get("typesetter.parseppattern")) do
-      if (t.separator) then 
+      if (t.separator) then
         self:leaveHmode();
         SILE.documentState.documentClass.endPar(self)
       else self:setpar(t.string)
@@ -119,14 +118,17 @@ SILE.defaultTypesetter = std.object {
   -- Takes string, writes onto self.state.nodes
   setpar = function (self, t)
     t = string.gsub(t,"\n", " ");
-    --t = string.gsub(t,"^%s+", "");
     if (#self.state.nodes == 0) then
+      t = string.gsub(t,"^%s+", "");
       self:initline()
       SILE.documentState.documentClass.newPar(self)
     end
     SILE.shaper:itemize(self.state.nodes, t)
   end,
-
+  breakIntoLines = function (self, nl, breakWidth)
+    local breaks = SILE.linebreak:doBreak( nl, breakWidth);
+    return self:breakpointsToLines(breaks);
+  end,
   -- Empties self.state.nodes, breaks into lines, puts lines into vbox, adds vbox to
   -- Turns a node list into a list of vboxes
   boxUpNodes = function (self)
@@ -149,13 +151,8 @@ SILE.defaultTypesetter = std.object {
 
     local breakWidth = SILE.settings.get("typesetter.breakwidth") or self.frame:width()
     if (type(breakWidth) == "table") then breakWidth = breakWidth.length end
-    local breaks = SILE.linebreak:doBreak( nl, breakWidth);
-    if (#breaks == 0) then
-      SU.error("Couldn't break :(")
-    end
-    local lines = self:breakpointsToLines(breaks);
+    local lines = self:breakIntoLines(nl, breakWidth)
     local vboxes = {}
-    local previousVbox = nil
     for index=1, #lines do
       local l = lines[index]
       -- Move any migrating material
@@ -174,11 +171,11 @@ SILE.defaultTypesetter = std.object {
       elseif (#lines > 1 and index == (#lines-1)) then
         pageBreakPenalty = SILE.settings.get("typesetter.orphanpenalty")
       end
-      if index > 1 then
-        vboxes[#vboxes+1] = self:leadingFor(v, previousVbox)
+      if self.state.previousVbox then
+        vboxes[#vboxes+1] = self:leadingFor(v, self.state.previousVbox)
       end
       vboxes[#vboxes+1] = v
-      previousVbox = v
+      self.state.previousVbox = v
       if pageBreakPenalty > 0 then
         SU.debug("typesetter", "adding penalty of "..pageBreakPenalty.." after "..v)
         vboxes[#vboxes+1] = SILE.nodefactory.newPenalty({ penalty = pageBreakPenalty})
@@ -230,7 +227,7 @@ SILE.defaultTypesetter = std.object {
 
     for i=1,#pageNodeList do
       totalHeight = totalHeight + pageNodeList[i].height + pageNodeList[i].depth
-      if pageNodeList[i]:isVglue() then 
+      if pageNodeList[i]:isVglue() then
         table.insert(glues,pageNodeList[i]);
         gTotal = gTotal + pageNodeList[i].height
       end
@@ -239,13 +236,14 @@ SILE.defaultTypesetter = std.object {
     local adjustment = (target - totalHeight).length
 
     if (adjustment > gTotal.stretch) then adjustment = gTotal.stretch end
-    if (adjustment / gTotal.stretch > 0) then 
+    if (adjustment / gTotal.stretch > 0) then
       for i,g in pairs(glues) do
         g:setGlue(adjustment * g.height.stretch / gTotal.stretch)
       end
     end
 
-    SU.debug("pagebuilder", "Glues for self page adjusted by "..(adjustment/gTotal.stretch) )  
+    SU.debug("pagebuilder", "Glues for self page adjusted by "..(adjustment/gTotal.stretch) )
+    self.state.previousVbox = nil
   end,
 
   initNextFrame = function(self)
@@ -348,8 +346,8 @@ SILE.defaultTypesetter = std.object {
     local lskip = SILE.settings.get("document.lskip")
     if lskip then
       lskip.value = "lskip"
-      table.insert(slice, 1, lskip) 
-      table.insert(slice, 1, SILE.nodefactory.zeroHbox) 
+      table.insert(slice, 1, lskip)
+      table.insert(slice, 1, SILE.nodefactory.zeroHbox)
     end
   end,
   breakpointsToLines = function(self, bp)
@@ -377,7 +375,8 @@ SILE.defaultTypesetter = std.object {
           if (node:isBox() or (node:isPenalty() and node.penalty == -inf_bad)) then
             skipping = 0
             if node:isBox() then
-              naturalTotals = naturalTotals + node.width
+              local h = self.frame.direction == "TTB" and node.height or node.width
+              naturalTotals = naturalTotals + h
             end
           elseif skipping == 0 then-- and not(node:isGlue() and i == #slice) then
             naturalTotals = naturalTotals + node.width

@@ -1,13 +1,22 @@
 -- Basic! Transitional! In development! Not very good! Don't use it!
 local plain = SILE.require("classes/plain");
 local jplain = plain { id = "jplain", base = plain };
-if not(SILE.scratch.headers) then SILE.scratch.headers = {}; end
+
+SILE.call("bidi-off")
+
+jplain:declareOption("layout", "yoko")
+
 jplain:loadPackage("hanmenkyoshi")
-jplain:declareHanmenFrame( "content", {
-  left = "8.3%", top = "11.6%", bottom = "90%",
-  gridsize = 10, linegap = 7, linelength = 50, 
-})
-jplain.pageTemplate.firstContentFrame = jplain.pageTemplate.frames.content
+function jplain:init()
+  self:declareHanmenFrame( "content", {
+    left = "8.3%", top = "11.6%",
+    gridsize = 10, linegap = 7, linelength = 50,
+    linecount = 30,
+    tate = self.options.layout() == "tate"
+  })
+  self.pageTemplate.firstContentFrame = self.pageTemplate.frames.content
+  return self.base:init()
+end
 
 SILE.languageSupport.loadLanguage("ja")
 SILE.settings.set("document.parindent",SILE.nodefactory.newGlue("10pt"))

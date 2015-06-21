@@ -35,7 +35,7 @@ int pdf_init (lua_State *L) {
 
 int pdf_endpage(lua_State *L) {
   ASSERT(p);
-  texpdf_doc_end_page(p);  
+  texpdf_doc_end_page(p);
   return 0;
 };
 
@@ -61,7 +61,7 @@ int pdf_loadfont(lua_State *L) {
   int layout_dir = 0;
   int extend = 65536;
   int slant = 0;
-  int embolden = 0;  
+  int embolden = 0;
   int font_id;
 
   if (!lua_istable(L, 1)) return 0;
@@ -104,12 +104,17 @@ int pdf_loadfont(lua_State *L) {
 
   lua_pushstring(L, "layout_dir");
   lua_gettable(L, -2);
-  if (lua_isnumber(L, -1)) { layout_dir = lua_tointeger(L, -1); }  
+  if (lua_isnumber(L, -1)) { layout_dir = lua_tointeger(L, -1); }
   lua_pop(L,1);
 
   font_id = texpdf_dev_load_native_font(filename, index, precision * ptsize, layout_dir, extend, slant, embolden);
   lua_pushinteger(L, font_id);
   return 1;
+}
+
+int pdf_setdirmode(lua_State *L) {
+  int layout_dir = luaL_checkinteger(L,1);
+  texpdf_dev_set_dirmode(layout_dir);
 }
 
 int pdf_setstring(lua_State *L) {
@@ -119,7 +124,6 @@ int pdf_setstring(lua_State *L) {
   int    chrlen  = luaL_checkinteger(L, 4);
   int    font_id = luaL_checkinteger(L, 5);
   double w = luaL_checknumber(L,6);
-
   texpdf_dev_set_string(p, precision * x, precision * (-height+y), s, chrlen, w * 65536 * precision, font_id, -1);
   return 0;
 }
@@ -198,7 +202,7 @@ int pdf_bookmark(lua_State *L) {
   } else if (current_depth < level) {
     while (current_depth++ < level)
       texpdf_doc_bookmarks_down(p);
-  }  
+  }
   texpdf_doc_bookmarks_add(p, dict, 0);
   return 0;
 }
@@ -324,6 +328,7 @@ static const struct luaL_Reg lib_table [] = {
   {"endpage", pdf_endpage},
   {"finish", pdf_finish},
   {"loadfont", pdf_loadfont},
+  {"setdirmode", pdf_setdirmode},
   {"setstring", pdf_setstring},
   {"setrule", pdf_setrule},
   {"setcolor", pdf_setcolor},
@@ -337,7 +342,7 @@ static const struct luaL_Reg lib_table [] = {
   {"destination", pdf_destination},
   {"bookmark", pdf_bookmark},
   {"begin_annotation", pdf_begin_annotation},
-  {"end_annotation", pdf_end_annotation},  
+  {"end_annotation", pdf_end_annotation},
   {NULL, NULL}
 };
 

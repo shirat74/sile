@@ -12,6 +12,15 @@ plain.endPage = function(self)
   return SILE.baseClass.endPage(self)
 end
 
+local options = {}
+plain.declareOption = function (self, name, default)
+  options[name] = default
+  self.options[name] = function (g)
+    if g then options[name] = g end
+    return options[name]
+  end
+end
+
 SILE.registerCommand("noindent", function ( options, content )
   SILE.settings.set("current.parindent", SILE.nodefactory.zeroGlue)
   SILE.process(content)
@@ -22,28 +31,28 @@ SILE.registerCommand("indent", function ( options, content )
   SILE.process(content)
 end, "Do add an indent to the start of this paragraph, even if previously told otherwise")
 
-local skips = { small= "3pt plus 1pt minus 1pt", 
+local skips = { small= "3pt plus 1pt minus 1pt",
       med = "6pt plus 2pt minus 2pt",
       big = "12pt plus 4pt minus 4pt"}
 
 for k,v in pairs(skips) do
-  SILE.settings.declare({ 
+  SILE.settings.declare({
     name = "plain."..k.."skipamount", type="VGlue", default = SILE.nodefactory.newVglue(v),
     help = "The amount of a \\"..k.."skip"})
   SILE.registerCommand(k.."skip", function ( options, content )
-    SILE.typesetter:leaveHmode();    
+    SILE.typesetter:leaveHmode();
     SILE.typesetter:pushExplicitVglue(SILE.settings.get("plain."..k.."skipamount"))
   end, "Skip vertically by a "..k.." amount")
 end
 
 SILE.registerCommand("hfill", function(o,c) SILE.typesetter:pushGlue(SILE.nodefactory.hfillGlue) end, "Add a huge horizontal glue")
-SILE.registerCommand("vfill", function(o,c) 
+SILE.registerCommand("vfill", function(o,c)
   SILE.typesetter:leaveHmode()
   SILE.typesetter:pushExplicitVglue(SILE.nodefactory.vfillGlue) end, "Add huge vertical glue")
-SILE.registerCommand("hss", function(o,c) 
+SILE.registerCommand("hss", function(o,c)
   SILE.typesetter:initline()
   SILE.typesetter:pushGlue(SILE.nodefactory.hssGlue)
-  table.insert(SILE.typesetter.state.nodes, SILE.nodefactory.zeroHbox) 
+  table.insert(SILE.typesetter.state.nodes, SILE.nodefactory.zeroHbox)
 end, "Add glue which stretches and shrinks horizontally (good for centering)")
 SILE.registerCommand("vss", function(o,c) SILE.typesetter:pushVglue(SILE.nodefactory.vssGlue) end, "Add glue which stretches and shrinks vertically")
 
@@ -52,6 +61,7 @@ plain.registerCommands = function()
   SILE.doTexlike([[\define[command=thinspace]{\glue[width=0.16667em]}%
 \define[command=negthinspace]{\glue[width=-0.16667em]}%
 \define[command=enspace]{\glue[width=0.5em]}%
+\define[command=relax]{}%
 \define[command=enskip]{\enspace}%
 \define[command=quad]{\glue[width=1em]}%
 \define[command=qquad]{\glue[width=2em]}%
@@ -144,7 +154,7 @@ SILE.registerCommand("vbox", function (options,c)
     SILE.process(c)
     SILE.typesetter:leaveHmode(1)
     vbox = SILE.pagebuilder.collateVboxes(SILE.typesetter.state.outputQueue)
-    SILE.typesetter:popState()    
+    SILE.typesetter:popState()
   end)
   return vbox
 end, "Compiles all the enclosed horizontal-mode material into a single hbox")

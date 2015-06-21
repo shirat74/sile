@@ -1,5 +1,5 @@
 SILE = {}
-SILE.version = "0.9.2"
+SILE.version = "0.9.3-unreleased"
 SILE.utilities = require("core/utilities")
 SU = SILE.utilities
 SILE.inputs = {}
@@ -73,7 +73,7 @@ local parser = std.optparse ("This is SILE "..SILE.version..[[
 
    -d, --debug=VALUE        debug SILE's operation
    -b, --backend=VALUE      choose between libtexpdf/pangocairo backends
-   -I, --include=[FILE]     include a class or SILE file before 
+   -I, --include=[FILE]     include a class or SILE file before
                             processing main file
    -e, --evaluate=VALUE     evaluate some Lua code before processing file
        --version            display version information, then exit
@@ -130,20 +130,6 @@ function SILE.initRepl ()
 end
 
 function SILE.repl()
-  if _VERSION:match("5.2") then
-    setfenv = function(f, t)
-        f = (type(f) == 'function' and f or debug.getinfo(f + 1, 'f').func)
-        local name
-        local up = 0
-        repeat
-            up = up + 1
-            name = debug.getupvalue(f, up)
-        until name == '_ENV' or name == nil
-        if name then
-    debug.upvaluejoin(f, up, function() return t end, 1) -- use unique upvalue, set it to f
-        end
-    end
-  end
   if not SILE._repl then SILE.initRepl() end
   SILE._repl:run()
 end

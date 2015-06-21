@@ -43,16 +43,16 @@ SILE.registerCommand(tableTag, function(options, content)
   SILE.settings.temporarily(function ()
     SILE.settings.set("document.parindent", SILE.nodefactory.newGlue("0pt"))
     SILE.settings.set("current.parindent", SILE.nodefactory.newGlue("0pt"))
-    SILE.process(content)  
+    SILE.process(content)
   end)
   SILE.typesetter:leaveHmode()
   -- Look down columns and find largest thing per column
   local colwidths = {}
   local col = 1
-  local stuffInThisColumn 
+  local stuffInThisColumn
   repeat
     stuffInThisColumn = false
-    for row = 1,#tbl do 
+    for row = 1,#tbl do
       cell = tbl[row][col]
       if cell then
         stuffInThisColumn = true
@@ -63,7 +63,7 @@ SILE.registerCommand(tableTag, function(options, content)
     end
     col = col + 1
   until not stuffInThisColumn
-  
+
 
   -- Now set each row at the given column width
   for row = 1,#tbl do
@@ -71,12 +71,14 @@ SILE.registerCommand(tableTag, function(options, content)
       cell = tbl[row][col]
       local box = SILE.Commands["vbox"]({width = colwidths[col]}, cell.content)
       box = box.nodes[1]
-      box.outputYourself = function(self,typesetter, line)
-       for i, n in ipairs(self.nodes) do 
-          n:outputYourself(typesetter, self) 
+      if box then
+        box.outputYourself = function(self,typesetter, line)
+         for i, n in ipairs(self.nodes) do
+            n:outputYourself(typesetter, self)
+          end
         end
+        table.insert(SILE.typesetter.state.nodes, box) -- a vbox on the hbox list!
       end
-      table.insert(SILE.typesetter.state.nodes, box) -- a vbox on the hbox list!
     end
     SILE.typesetter:leaveHmode()
     SILE.call("smallskip")
